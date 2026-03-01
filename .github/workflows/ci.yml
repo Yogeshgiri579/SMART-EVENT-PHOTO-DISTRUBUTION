@@ -14,6 +14,18 @@ jobs:
     name: 🧪 Backend Tests (Vitest)
     runs-on: ubuntu-latest
 
+    # Spin up a real MongoDB instance for the duration of this job
+    services:
+      mongodb:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,8 +45,9 @@ jobs:
         run: npm test
         working-directory: ./server
         env:
-          # Tests that need MongoDB will use in-memory mocking from the test file
           NODE_ENV: test
+          # Point tests at the MongoDB service container started above
+          MONGODB_URI: mongodb://localhost:27017/momentdrop_test
 
   # ─────────────────────────────────────────────
   # Job 2: Build & validate the React client
