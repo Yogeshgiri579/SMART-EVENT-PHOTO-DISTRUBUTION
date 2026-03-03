@@ -15,7 +15,7 @@ services:
     runtime: docker
     # Pulls the image your CD pipeline pushes to Docker Hub
     image:
-      url: docker.io/${DOCKERHUB_USERNAME}/momentdrop-backend:latest
+      url: docker.io/yogeshgiri579/momentdrop-backend:latest
     plan: free
     healthCheckPath: /api/health
     envVars:
@@ -56,7 +56,7 @@ services:
     name: momentdrop-worker
     runtime: docker
     image:
-      url: docker.io/${DOCKERHUB_USERNAME}/momentdrop-backend:latest
+      url: docker.io/yogeshgiri579/momentdrop-backend:latest
     plan: free
     # Overrides the default CMD to run the worker instead of the API server
     dockerCommand: npm run worker
@@ -85,7 +85,7 @@ services:
     name: momentdrop-python
     runtime: docker
     image:
-      url: docker.io/${DOCKERHUB_USERNAME}/momentdrop-python:latest
+      url: docker.io/yogeshgiri579/momentdrop-python:latest
     plan: free
     # No healthCheckPath — Python service may not have one, Render will use TCP check
 
@@ -94,7 +94,7 @@ services:
     name: momentdrop-client
     runtime: docker
     image:
-      url: docker.io/${DOCKERHUB_USERNAME}/momentdrop-client:latest
+      url: docker.io/yogeshgiri579/momentdrop-client:latest
     plan: free
     envVars:
       # The nginx entrypoint script uses this to proxy /api/ requests to the backend
@@ -106,3 +106,4 @@ services:
     name: momentdrop-redis
     plan: free
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: []   # Empty = only accessible from services in this Render account (private)

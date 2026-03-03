@@ -81,12 +81,12 @@ jobs:
         run: |
           echo "Triggering Render deploys..."
           curl -s -o /dev/null -w "Backend: %{http_code}\n" \
-            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}"
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}" || true
           curl -s -o /dev/null -w "Worker:  %{http_code}\n" \
-            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_WORKER }}"
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_WORKER }}" || true
           curl -s -o /dev/null -w "Python:  %{http_code}\n" \
-            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_PYTHON }}"
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_PYTHON }}" || true
           curl -s -o /dev/null -w "Client:  %{http_code}\n" \
-            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_CLIENT }}"
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_CLIENT }}" || true
           echo "✅ Deploy hooks triggered. Check Render dashboard for status."
 
