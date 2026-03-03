@@ -8,17 +8,16 @@ import numpy as np
 from typing import Optional
 import os
 import logging
+import gc
 
 # Disable logging for embeddings to ensure no sensitive data is printed
 logging.getLogger("deepface").setLevel(logging.ERROR)
 
 app = FastAPI()
 
-# Preload model
-try:
-    DeepFace.build_model('Facenet')
-except Exception as e:
-    print(f"Failed to preload model: {e}")
+# NOTE: Model is loaded lazily on first request (not at startup)
+# to stay within Render's 512MB free tier memory limit.
+# First request will be slow (~10-20s) while the model loads.
 
 @app.get("/health")
 def health_check():
@@ -77,6 +76,9 @@ async def generate_embeddings(
         # Avoid logging embedding vectors; only structural error
         print(f"Error processing image generation: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error generating embeddings")
+    finally:
+        # Explicitly free memory after each request (critical on 512MB free tier)
+        gc.collect()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
