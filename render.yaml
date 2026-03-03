@@ -1,16 +1,14 @@
 # render.yaml — Render Blueprint
-# Deploys all MomentDrop services using pre-built Docker Hub images.
-# Render reads this file when you create a New → Blueprint.
-#
-# After services are created, set the secret env vars (sync: false)
-# in each service's Environment tab in the Render dashboard.
+# Builds each service directly from its Dockerfile in the repo.
+# Render reads this when you create New → Blueprint.
 
 services:
-  # ─── Backend (Node.js API) ────────────────────────────────────────────────
+  # ─── Backend (Node.js API) ───────────────────────────────────────────────
   - type: web
     name: momentdrop-backend
-    image:
-      url: docker.io/yogeshgiri579/momentdrop-backend:latest
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
     plan: free
     envVars:
       - key: NODE_ENV
@@ -45,10 +43,10 @@ services:
   # ─── Background Worker ───────────────────────────────────────────────────
   - type: worker
     name: momentdrop-worker
-    image:
-      url: docker.io/yogeshgiri579/momentdrop-backend:latest
+    runtime: docker
+    dockerfilePath: ./server/worker.Dockerfile
+    dockerContext: ./server
     plan: free
-    startCommand: npm run worker
     envVars:
       - key: NODE_ENV
         value: production
@@ -69,24 +67,26 @@ services:
       - key: PYTHON_SERVICE_URL
         sync: false
 
-  # ─── Python Face Recognition Service ─────────────────────────────────────
+  # ─── Python Face Recognition Service ────────────────────────────────────
   - type: web
     name: momentdrop-python
-    image:
-      url: docker.io/yogeshgiri579/momentdrop-python:latest
+    runtime: docker
+    dockerfilePath: ./python_service/Dockerfile
+    dockerContext: ./python_service
     plan: free
 
-  # ─── React Client (Nginx) ─────────────────────────────────────────────────
+  # ─── React Client (Nginx) ────────────────────────────────────────────────
   - type: web
     name: momentdrop-client
-    image:
-      url: docker.io/yogeshgiri579/momentdrop-client:latest
+    runtime: docker
+    dockerfilePath: ./client/Dockerfile
+    dockerContext: ./client
     plan: free
     envVars:
       - key: BACKEND_URL
         sync: false
 
-  # ─── Redis ────────────────────────────────────────────────────────────────
+  # ─── Redis ───────────────────────────────────────────────────────────────
   - type: redis
     name: momentdrop-redis
     plan: free
