@@ -1,33 +1,26 @@
 # render.yaml — Render Blueprint
-# Defines all MomentDrop services as Infrastructure-as-Code.
-# Render will read this file and create/configure all services automatically.
+# Deploys all MomentDrop services using pre-built Docker Hub images.
+# Render reads this file when you create a New → Blueprint.
 #
-# HOW TO USE:
-#   1. Push this file to your GitHub repo (main branch)
-#   2. Go to render.com → New → Blueprint → connect this repo
-#   3. Set the secret env vars in the Render dashboard for each service (marked sync:false)
-#   4. Add your Render deploy hook URLs as GitHub Secrets (RENDER_DEPLOY_HOOK_*)
+# After services are created, set the secret env vars (sync: false)
+# in each service's Environment tab in the Render dashboard.
 
 services:
   # ─── Backend (Node.js API) ────────────────────────────────────────────────
   - type: web
     name: momentdrop-backend
-    runtime: docker
-    # Pulls the image your CD pipeline pushes to Docker Hub
     image:
       url: docker.io/yogeshgiri579/momentdrop-backend:latest
     plan: free
-    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 5000
-      # ── Secrets — set these manually in Render dashboard ──
       - key: MONGODB_URI
-        sync: false        # MongoDB Atlas connection string
+        sync: false
       - key: REDIS_URL
-        sync: false        # Render Redis internal URL (copy from Redis service below)
+        sync: false
       - key: JWT_ACCESS_SECRET
         sync: false
       - key: JWT_REFRESH_SECRET
@@ -36,30 +29,26 @@ services:
         value: 15m
       - key: JWT_REFRESH_EXPIRY
         value: 7d
-      # ── Backblaze B2 (replaces MinIO) ──
       - key: MINIO_ENDPOINT
-        sync: false        # e.g. https://s3.us-004.backblazeb2.com
+        sync: false
       - key: MINIO_BUCKET
         value: momentdrop
       - key: MINIO_ACCESS_KEY
-        sync: false        # Backblaze keyID
+        sync: false
       - key: MINIO_SECRET_KEY
-        sync: false        # Backblaze applicationKey
+        sync: false
       - key: MINIO_USE_SSL
         value: "true"
-      # ── Python service (internal URL, set after python service is deployed) ──
       - key: PYTHON_SERVICE_URL
-        sync: false        # e.g. https://momentdrop-python.onrender.com
+        sync: false
 
-  # ─── Background Worker (Bull queue processor) ────────────────────────────
+  # ─── Background Worker ───────────────────────────────────────────────────
   - type: worker
     name: momentdrop-worker
-    runtime: docker
     image:
       url: docker.io/yogeshgiri579/momentdrop-backend:latest
     plan: free
-    # Overrides the default CMD to run the worker instead of the API server
-    dockerCommand: npm run worker
+    startCommand: npm run worker
     envVars:
       - key: NODE_ENV
         value: production
@@ -83,27 +72,23 @@ services:
   # ─── Python Face Recognition Service ─────────────────────────────────────
   - type: web
     name: momentdrop-python
-    runtime: docker
     image:
       url: docker.io/yogeshgiri579/momentdrop-python:latest
     plan: free
-    # No healthCheckPath — Python service may not have one, Render will use TCP check
 
   # ─── React Client (Nginx) ─────────────────────────────────────────────────
   - type: web
     name: momentdrop-client
-    runtime: docker
     image:
       url: docker.io/yogeshgiri579/momentdrop-client:latest
     plan: free
     envVars:
-      # The nginx entrypoint script uses this to proxy /api/ requests to the backend
       - key: BACKEND_URL
-        sync: false        # e.g. https://momentdrop-backend.onrender.com
+        sync: false
 
   # ─── Redis ────────────────────────────────────────────────────────────────
   - type: redis
     name: momentdrop-redis
     plan: free
     maxmemoryPolicy: allkeys-lru
-    ipAllowList: []   # Empty = only accessible from services in this Render account (private)
+    ipAllowList: []
