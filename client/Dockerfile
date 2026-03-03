@@ -19,8 +19,15 @@ RUN npm run build
 # Step 2: Serve the application with Nginx
 FROM nginx:alpine
 
-# Copy the custom Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Install gettext for envsubst (to substitute env vars in nginx.conf at startup)
+RUN apk add --no-cache gettext
+
+# Copy the nginx config as a *template* — envsubst will fill in ${BACKEND_URL} at startup
+COPY nginx.conf /etc/nginx/templates/default.conf.template
+
+# Copy the entrypoint script that runs envsubst then starts nginx
+COPY nginx-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Copy the build output from the first stage to replace the default Nginx contents
 COPY --from=build /app/dist /usr/share/nginx/html
@@ -28,5 +35,5 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Expose port 80 to the outside
 EXPOSE 80
 
-# Start Nginx in the foreground
-CMD ["nginx", "-g", "daemon off;"]
+# Run entrypoint script: fills in BACKEND_URL → writes /etc/nginx/conf.d/default.conf → starts nginx
+CMD ["/docker-entrypoint.sh"]

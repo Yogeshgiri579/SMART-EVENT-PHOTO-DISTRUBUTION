@@ -72,3 +72,21 @@ jobs:
           echo "| Backend | \`${{ secrets.DOCKERHUB_USERNAME }}/momentdrop-backend:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Client  | \`${{ secrets.DOCKERHUB_USERNAME }}/momentdrop-client:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Python  | \`${{ secrets.DOCKERHUB_USERNAME }}/momentdrop-python:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+
+      # ── Trigger Render deploys ────────────────
+      # Each hook URL tells Render to pull the new :latest image and redeploy.
+      # Add these secrets in: GitHub repo → Settings → Secrets → Actions
+      # Get the hook URLs from: Render dashboard → service → Settings → Deploy Hook
+      - name: 🚀 Trigger Render auto-deploys
+        run: |
+          echo "Triggering Render deploys..."
+          curl -s -o /dev/null -w "Backend: %{http_code}\n" \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}"
+          curl -s -o /dev/null -w "Worker:  %{http_code}\n" \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_WORKER }}"
+          curl -s -o /dev/null -w "Python:  %{http_code}\n" \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_PYTHON }}"
+          curl -s -o /dev/null -w "Client:  %{http_code}\n" \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_CLIENT }}"
+          echo "✅ Deploy hooks triggered. Check Render dashboard for status."
+
