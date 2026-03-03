@@ -27,7 +27,8 @@ COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Copy the entrypoint script that runs envsubst then starts nginx
 COPY nginx-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# Strip Windows CRLF line endings (\r\n → \n) — critical for Alpine sh to execute the script
+RUN sed -i 's/\r//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
 # Copy the build output from the first stage to replace the default Nginx contents
 COPY --from=build /app/dist /usr/share/nginx/html
