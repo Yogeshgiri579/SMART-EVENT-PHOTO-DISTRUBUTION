@@ -4,7 +4,6 @@ pydantic
 requests
 python-multipart
 pillow
-deepface
-opencv-python-headless
+numpy
 onnxruntime
-tf-keras
+opencv-python-headless
