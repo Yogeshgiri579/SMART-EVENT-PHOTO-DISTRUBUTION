@@ -1,6 +1,8 @@
+import './instrument.js' // Sentry must be imported first
 import express from 'express'
 import cors from 'cors'
 import rateLimit from 'express-rate-limit'
+import * as Sentry from '@sentry/node'
 import { connectMongo } from './db/mongoose.js'
 import { config } from './config/index.js'
 import { errorHandler } from './middleware/errorHandler.js'
@@ -33,6 +35,8 @@ app.use('/api/deliveries', deliveriesRoutes)
 
 app.get('/api/health', (req, res) => res.json({ ok: true }))
 
+// Sentry error handler must be before your own error handler
+Sentry.setupExpressErrorHandler(app)
 app.use(errorHandler)
 
 async function start() {
