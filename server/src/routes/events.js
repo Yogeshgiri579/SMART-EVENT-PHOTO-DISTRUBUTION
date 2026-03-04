@@ -355,39 +355,45 @@ router.get('/:eventId/my-photos', async (req, res, next) => {
     const event = await Event.findOne({ _id: req.params.eventId })
     if (!event) return res.status(404).json({ message: 'Event not found' })
 
-    // Check if the user is registered for the event
     const attendee = await EventAttendee.findOne({
       eventId: event._id,
       userId: req.userId,
     }).select('+embedding')
     if (!attendee) return res.status(403).json({ message: 'Not registered for this event' })
     if (!attendee.embedding || attendee.embedding.length === 0) {
-      return res.status(400).json({ message: 'No selfie embedding found for your registration. Please update your selfie.' })
+      return res.status(400).json({ message: 'No selfie embedding found. Please re-upload your selfie.' })
     }
 
-    // Perform vector search manually in Node.js
-    const allFaces = await EventFace.find({ eventId: event._id }).select('+embedding').lean();
+    const allFaces = await EventFace.find({ eventId: event._id }).select('+embedding').lean()
 
-    const results = [];
+    if (allFaces.length === 0) {
+      return res.json({ matches: [] })
+    }
+
+    // Guard: if attendee embedding dimension differs from stored event-face embeddings,
+    // the Python model changed between selfie upload and photo indexing.
+    // The user must re-register their selfie so both embeddings are from the same model.
+    const sampleFace = allFaces.find(f => f.embedding && f.embedding.length > 0)
+    if (sampleFace && sampleFace.embedding.length !== attendee.embedding.length) {
+      return res.status(400).json({
+        message: `Your selfie is outdated (${attendee.embedding.length}-dim vs current ${sampleFace.embedding.length}-dim). Please re-upload your selfie.`
+      })
+    }
+
+    const results = []
     for (const face of allFaces) {
-      if (!face.embedding || face.embedding.length === 0) continue;
-      const score = computeCosineSimilarity(attendee.embedding, face.embedding);
-      // Lower threshold to 0.60 since Facenet cosine distance threshold is ~0.40 (similarity >= 0.60)
-      if (score >= 0.60) {
-        let finalUrl = await getExternalSignedGetUrl(face.imageUrl);
-        results.push({
-          imageUrl: finalUrl,
-          score: score
-        });
+      if (!face.embedding || face.embedding.length === 0) continue
+      if (face.embedding.length !== attendee.embedding.length) continue
+      const score = computeCosineSimilarity(attendee.embedding, face.embedding)
+      // Threshold for L2-normalised MobileFaceNet/ArcFace cosine similarity
+      if (score >= 0.35) {
+        const finalUrl = await getExternalSignedGetUrl(face.imageUrl)
+        results.push({ imageUrl: finalUrl, score })
       }
     }
 
-    // Sort descending by score
-    results.sort((a, b) => b.score - a.score);
-    // Limit to top 20
-    const limitedResults = results.slice(0, 20);
-
-    res.json({ matches: limitedResults });
+    results.sort((a, b) => b.score - a.score)
+    return res.json({ matches: results.slice(0, 20) })
   } catch (e) {
     next(e)
   }
