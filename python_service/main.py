@@ -2,25 +2,39 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 import uvicorn
 import requests
-import face_recognition
 import numpy as np
 from typing import Optional
 import logging
 import gc
 import io
+import os
 from PIL import Image
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
+# Suppress deepface/tf noise
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["DEEPFACE_HOME"] = "/app/.deepface"
+
+from deepface import DeepFace
+
 app = FastAPI()
 
-# face_recognition (dlib) loads lazily — no startup model preload needed.
-# Total runtime memory: ~150MB vs DeepFace+TF at ~400MB.
+# Warm up the model on startup so the first request isn't slow
+@app.on_event("startup")
+def warmup():
+    try:
+        DeepFace.build_model("Facenet")
+        logger.info("Facenet model loaded")
+    except Exception as e:
+        logger.error(f"Model warmup failed: {e}")
+
 
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
 
 @app.post("/generate-embeddings")
 async def generate_embeddings(
@@ -49,28 +63,38 @@ async def generate_embeddings(
         if img_array is None:
             raise HTTPException(status_code=400, detail="Invalid image")
 
-        # ── Detect face locations ───────────────────────────────────────────
-        # model="hog" is faster + lighter than "cnn" — important on free tier
-        face_locations = face_recognition.face_locations(img_array, model="hog")
+        # ── Detect faces + generate 128-dim Facenet embeddings ─────────────
+        # enforce_detection=False returns empty list instead of raising when no face found
+        # detector_backend="opencv" is lightweight (no dlib) and works well on free tier
+        result = DeepFace.represent(
+            img_path=img_array,
+            model_name="Facenet",         # 128-dim embeddings, same as previous dlib output
+            detector_backend="opencv",    # Fast, pure-Python, no native compilation
+            enforce_detection=False,
+            align=True
+        )
 
-        if not face_locations:
+        if not result:
             return JSONResponse(status_code=200, content={"faces": []})
 
-        # ── Generate 128-dim embeddings (same dimensionality as Facenet) ───
-        face_encodings = face_recognition.face_encodings(img_array, face_locations)
-
         faces = []
-        for encoding, location in zip(face_encodings, face_locations):
-            top, right, bottom, left = location
+        for r in result:
+            embedding = r.get("embedding")
+            area = r.get("facial_area", {})
+
+            # Skip entries with no detected face area (enforce_detection=False can yield these)
+            if not embedding or area.get("w", 0) == 0:
+                continue
+
             faces.append({
-                "embedding": encoding.tolist(),          # 128-dim float list
-                "bounding_box": {                         # Same format as before
-                    "x": left,
-                    "y": top,
-                    "w": right - left,
-                    "h": bottom - top
+                "embedding": embedding,           # 128-dim float list
+                "bounding_box": {                 # Same format as before
+                    "x": area.get("x", 0),
+                    "y": area.get("y", 0),
+                    "w": area.get("w", 0),
+                    "h": area.get("h", 0)
                 },
-                "confidence": 1.0                         # dlib doesn't return confidence scores
+                "confidence": r.get("face_confidence", 1.0)
             })
 
         return JSONResponse(status_code=200, content={"faces": faces})
@@ -81,8 +105,8 @@ async def generate_embeddings(
         logger.error(f"Error processing image: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error generating embeddings")
     finally:
-        # Release memory after every request
         gc.collect()
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
