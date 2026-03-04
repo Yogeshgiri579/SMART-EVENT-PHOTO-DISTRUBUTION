@@ -10,26 +10,20 @@ import io
 import os
 from PIL import Image
 
-logging.basicConfig(level=logging.ERROR)
-logger = logging.getLogger(__name__)
-
-# Suppress deepface/tf noise
+# Suppress TensorFlow / deepface noise in logs
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["DEEPFACE_HOME"] = "/app/.deepface"
 
 from deepface import DeepFace
 
+logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger(__name__)
+
 app = FastAPI()
 
-# Warm up the model on startup so the first request isn't slow
-@app.on_event("startup")
-def warmup():
-    try:
-        DeepFace.build_model("Facenet")
-        logger.info("Facenet model loaded")
-    except Exception as e:
-        logger.error(f"Model warmup failed: {e}")
-
+# Model is loaded lazily on the first request.
+# On Render free tier the first request will take ~10-15s while Facenet downloads (~90MB).
+# Subsequent requests are fast. The /health endpoint does NOT trigger model load.
 
 @app.get("/health")
 def health_check():
@@ -64,12 +58,12 @@ async def generate_embeddings(
             raise HTTPException(status_code=400, detail="Invalid image")
 
         # ── Detect faces + generate 128-dim Facenet embeddings ─────────────
-        # enforce_detection=False returns empty list instead of raising when no face found
-        # detector_backend="opencv" is lightweight (no dlib) and works well on free tier
+        # enforce_detection=False → returns empty list instead of raising when no face found
+        # detector_backend="opencv" → lightweight, pure-Python, no dlib or C++ compilation
         result = DeepFace.represent(
             img_path=img_array,
-            model_name="Facenet",         # 128-dim embeddings, same as previous dlib output
-            detector_backend="opencv",    # Fast, pure-Python, no native compilation
+            model_name="Facenet",         # 128-dim, matches existing DB schema
+            detector_backend="opencv",    # Fast + no native compilation needed
             enforce_detection=False,
             align=True
         )
@@ -82,13 +76,13 @@ async def generate_embeddings(
             embedding = r.get("embedding")
             area = r.get("facial_area", {})
 
-            # Skip entries with no detected face area (enforce_detection=False can yield these)
+            # Skip entries with no detected face (enforce_detection=False can yield ghost entries)
             if not embedding or area.get("w", 0) == 0:
                 continue
 
             faces.append({
                 "embedding": embedding,           # 128-dim float list
-                "bounding_box": {                 # Same format as before
+                "bounding_box": {                 # Same format as before — no changes needed in Node
                     "x": area.get("x", 0),
                     "y": area.get("y", 0),
                     "w": area.get("w", 0),

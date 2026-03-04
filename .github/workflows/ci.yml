@@ -86,8 +86,11 @@ jobs:
           retention-days: 7
 
   # ─────────────────────────────────────────────
-  # Job 3: Validate all Docker images build correctly
-  # Runs only after tests + client build pass
+  # Job 3: Validate backend + client Docker images
+  # NOTE: Python image is NOT validated here —
+  # deepface pulls ~200MB of ML model weights at
+  # runtime (not build time) which would timeout
+  # CI. The Python image is built & pushed in CD.
   # ─────────────────────────────────────────────
   validate-docker:
     name: 🐳 Docker Build Validation
@@ -114,10 +117,3 @@ jobs:
           context: ./client
           push: false
           tags: momentdrop-client:ci
-
-      - name: Build python_service image (validate only)
-        uses: docker/build-push-action@v5
-        with:
-          context: ./python_service
-          push: false
-          tags: momentdrop-python:ci
