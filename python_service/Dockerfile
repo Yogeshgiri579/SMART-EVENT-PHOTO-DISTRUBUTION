@@ -17,7 +17,8 @@ RUN wget -q -O /tmp/buffalo_sc.zip \
       "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_sc.zip" \
     && mkdir -p /app/models \
     && unzip -q /tmp/buffalo_sc.zip -d /app/models \
-    && rm /tmp/buffalo_sc.zip
+    && rm /tmp/buffalo_sc.zip \
+    && find /app/models -name '*.onnx' -type f
 
 COPY . .
 

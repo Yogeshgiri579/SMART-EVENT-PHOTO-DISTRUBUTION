@@ -21,14 +21,34 @@ face_cascade = cv2.CascadeClassifier(
     cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
 )
 
-# ── MobileFaceNet ONNX model loaded once, lazily ───────────────────────────────
+# ── MobileFaceNet ONNX model — find the file wherever the zip extracted it ─────
+import glob as _glob
+
+def _find_model() -> str:
+    # Try common locations (zip may extract flat or into buffalo_sc/ subdir)
+    candidates = [
+        "/app/models/buffalo_sc/w600k_mbf.onnx",
+        "/app/models/w600k_mbf.onnx",
+        *_glob.glob("/app/models/**/*mbf*.onnx", recursive=True),
+        *_glob.glob("/app/models/**/*w600k*.onnx", recursive=True),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    raise FileNotFoundError(
+        f"w600k_mbf.onnx not found. Files under /app/models: "
+        + str(_glob.glob("/app/models/**/*", recursive=True))
+    )
+
 _emb_session = None
-EMB_MODEL_PATH = "/app/models/buffalo_sc/w600k_mbf.onnx"
+EMB_MODEL_PATH = None  # resolved lazily at first request
 
 def get_emb_session():
-    global _emb_session
+    global _emb_session, EMB_MODEL_PATH
     if _emb_session is None:
         import onnxruntime as ort
+        EMB_MODEL_PATH = _find_model()
+        logger.error(f"Loading embedding model from: {EMB_MODEL_PATH}")
         _emb_session = ort.InferenceSession(
             EMB_MODEL_PATH,
             providers=["CPUExecutionProvider"]
