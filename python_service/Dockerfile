@@ -1,18 +1,9 @@
-FROM python:3.10-slim
-
-# Build tools needed to compile dlib (face_recognition dependency)
-RUN apt-get update && apt-get install -y \
-    cmake \
-    build-essential \
-    libopenblas-dev \
-    liblapack-dev \
-    libx11-dev \
-    && rm -rf /var/lib/apt/lists/*
+FROM animcogn/face_recognition:cpu
 
 WORKDIR /app
 
-# Install requirements (dlib compilation takes a few minutes)
 COPY requirements.txt .
+# face_recognition, dlib, and numpy are pre-installed in the base image
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .

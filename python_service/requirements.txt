@@ -1,8 +1,6 @@
 fastapi
 uvicorn
-face_recognition
-numpy
-pillow
 pydantic
 requests
 python-multipart
+pillow
