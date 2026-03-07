@@ -1,10 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { listEvents } from '../api/events'
 
 export default function EventsList() {
-  const [search, setSearch] = useState('')
+  const [searchParams] = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('search') || '')
+
+  useEffect(() => {
+    const q = searchParams.get('search')
+    if (q !== null) setSearch(q)
+  }, [searchParams])
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['events'],

@@ -387,7 +387,7 @@ router.get('/:eventId/my-photos', async (req, res, next) => {
       if (face.embedding.length !== attendee.embedding.length) continue
       const score = computeCosineSimilarity(attendee.embedding, face.embedding)
       // Threshold for L2-normalised MobileFaceNet/ArcFace cosine similarity
-      if (score >= 0.35) {
+      if (score >= 0.25) {
         const finalUrl = await getExternalSignedGetUrl(face.imageUrl)
         results.push({ imageUrl: finalUrl, score })
       }

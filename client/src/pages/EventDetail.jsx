@@ -148,11 +148,51 @@ export default function EventDetail() {
               <button
                 onClick={async () => {
                   try {
-                    await navigator.share({
-                      title: event.name,
-                      text: `Upload your selfies for ${event.name}!`,
-                      url: eventUrl
-                    });
+                    const svgNode = document.getElementById("event-qr-code");
+                    if (svgNode) {
+                      const svgData = new XMLSerializer().serializeToString(svgNode);
+                      const canvas = document.createElement("canvas");
+                      const ctx = canvas.getContext("2d");
+                      const img = new Image();
+                      
+                      img.onload = () => {
+                        // Add padding/background to the canvas so it looks nice
+                        canvas.width = img.width + 40;
+                        canvas.height = img.height + 40;
+                        ctx.fillStyle = "#ffffff";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 20, 20);
+                        
+                        canvas.toBlob(async (blob) => {
+                          const file = new File([blob], 'event-qr.png', { type: 'image/png' });
+                          try {
+                            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                              await navigator.share({
+                                files: [file],
+                                title: event.name,
+                                text: `Join ${event.name} and upload your selfies!`,
+                                url: eventUrl
+                              });
+                            } else {
+                              await navigator.share({
+                                title: event.name,
+                                text: `Join ${event.name} and upload your selfies!`,
+                                url: eventUrl
+                              });
+                            }
+                          } catch (e) {
+                            console.log('Share error:', e);
+                          }
+                        });
+                      };
+                      img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+                    } else {
+                      await navigator.share({
+                        title: event.name,
+                        text: `Join ${event.name} and upload your selfies!`,
+                        url: eventUrl
+                      });
+                    }
                   } catch (e) {
                     console.log('Share error:', e);
                   }
@@ -166,6 +206,7 @@ export default function EventDetail() {
           </div>
           <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-md flex-shrink-0">
             <QRCode
+              id="event-qr-code"
               value={eventUrl}
               size={140}
               bgColor={"#ffffff"}
