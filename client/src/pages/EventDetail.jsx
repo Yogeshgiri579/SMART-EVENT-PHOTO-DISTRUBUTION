@@ -177,14 +177,18 @@ export default function EventDetail() {
                         
                         canvas.toBlob(async (blob) => {
                           const file = new File([blob], 'event-qr.png', { type: 'image/png' });
-                          const shareText = `Join ${event.name} and upload your selfies!\n\nLink: ${eventUrl}`;
+                          
+                          // WhatsApp uses the 'text' field as the image caption when sharing files.
+                          // It must explicitly NOT include a 'url' property in the share object, 
+                          // otherwise it splits them. Expanding the text forces a nice caption block.
+                          const shareText = `📸 *You're invited to ${event.name}!*\n\nI am using MomentDrop to instantly deliver all your event photos directly to your phone using AI.\n\n📍 *How to join:*\n1. Click the secure link below or scan the attached QR code.\n2. Snap a quick selfie.\n3. Sit back! You'll automatically receive every photo you appear in.\n\n🔗 *Event Link:* ${eventUrl}`;
+                          
                           try {
                             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                               await navigator.share({
                                 files: [file],
                                 title: event.name,
-                                text: shareText,
-                                // Removing 'url' param ensures WhatsApp shows the image
+                                text: shareText
                               });
                             } else {
                               await navigator.share({

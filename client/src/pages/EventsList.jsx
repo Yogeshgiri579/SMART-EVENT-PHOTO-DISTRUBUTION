@@ -79,7 +79,6 @@ export default function EventsList() {
         </div>
 
 
-
         {filteredEvents.length === 0 ? (
           <div className="bg-white rounded-3xl border border-slate-100 p-16 text-center shadow-sm mt-8">
             <div className="w-24 h-24 bg-primary-50 text-primary-500 rounded-full flex items-center justify-center mx-auto mb-6">
