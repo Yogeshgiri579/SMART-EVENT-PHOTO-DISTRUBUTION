@@ -50,6 +50,21 @@ export default function EventsList() {
 
   const events = data?.events ?? []
 
+  const filteredEvents = events.filter(e => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    
+    // Attempt to extract event ID if a full link was pasted
+    const possibleIdMatch = search.match(/events\/([a-zA-Z0-9_-]+)/i);
+    const searchId = possibleIdMatch ? possibleIdMatch[1].toLowerCase() : s;
+    
+    if (e.name.toLowerCase().includes(s)) return true;
+    if (e._id.toLowerCase() === searchId || (e.id && e.id.toLowerCase() === searchId)) return true;
+    if (e._id.toLowerCase().includes(s)) return true;
+    
+    return false;
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
