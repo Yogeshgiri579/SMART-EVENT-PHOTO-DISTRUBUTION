@@ -1,87 +1,56 @@
-# MomentDrop – Smart Event Photo Distribution
+# SMART EVENT PHOTO DISTRIBUTION
 
-MERN app that uses **facial recognition** (AWS Rekognition) to deliver event photos to attendees. Uses **local Redis** (Docker) for job queues and supports **MinIO** (Docker) for free S3-compatible storage.
+## Project Overview
+SMART EVENT PHOTO DISTRIBUTION is a project designed to simplify the process of distributing event photos to attendees. By leveraging modern technology, this application ensures that photos are shared swiftly, securely, and effortlessly.
 
-## Prerequisites
+## Architecture
+The architecture of the project follows a microservices approach, enabling scalability and maintainability. Each component of the system is designed to handle a specific task, such as user authentication, photo uploads, and sharing functionalities, thereby allowing for independent development and deployment.
 
-- Node.js 18+
-- Docker Desktop (for Redis, and optionally MinIO)
-- MongoDB (local or [Atlas free tier](https://www.mongodb.com/cloud/atlas))
-- AWS account (free tier) for Rekognition: [AWS Rekognition Free Tier](https://aws.amazon.com/rekognition/pricing/) – 5,000 images/month for 12 months
+## Setup Instructions
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Yogeshgiri579/SMART-EVENT-PHOTO-DISTRUBUTION.git
+   cd SMART-EVENT-PHOTO-DISTRUBUTION
+   ```
+2. Install the necessary dependencies:
+   ```bash
+   npm install
+   ```
+3. Configure the environment variables:
+   - Create a `.env` file and fill in the required variables.
+4. Start the application:
+   ```bash
+   npm start
+   ```
 
-## Quick start
+## Features
+- User authentication
+- Photo upload and storage
+- Custom sharing options for users
+- Event categorization
+- User-friendly interface
 
-### 1. Start Redis (and optionally MinIO)
+## Technology Stack
+- **Frontend:** React.js
+- **Backend:** Node.js, Express
+- **Database:** MongoDB
+- **Authentication:** JWT
 
-```bash
-docker compose up -d
-```
+## Contributing Guidelines
+1. Fork the repository.
+2. Create a new branch for your feature:
+   ```bash
+   git checkout -b feature/YourFeature
+   ```
+3. Make your changes and commit them:
+   ```bash
+   git commit -m "Add your feature description"
+   ```
+4. Push to the branch:
+   ```bash
+   git push origin feature/YourFeature
+   ```
+5. Open a pull request describing your changes and why they should be merged.
 
-- Redis: `localhost:6379`
-- MinIO: API `http://localhost:9000`, Console `http://localhost:9001` (create bucket `momentdrop`)
-
-### 2. Backend
-
-```bash
-cd server
-cp ../.env.example .env
-# Edit .env: set MONGODB_URI, REDIS_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET
-# For MinIO: S3_ENDPOINT=http://localhost:9000, S3_BUCKET=momentdrop, S3_ACCESS_KEY=minioadmin, S3_SECRET_KEY=minioadmin
-# For Rekognition: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
-
-npm install
-npm run dev
-```
-
-In another terminal, start the photo worker:
-
-```bash
-cd server
-npm run worker
-```
-
-### 3. Frontend
-
-```bash
-cd client
-npm install
-npm run dev
-```
-
-Open http://localhost:5173
-
-## Scripts
-
-| Where    | Command        | Description              |
-|----------|----------------|--------------------------|
-| server   | `npm run dev`   | Run API (with watch)     |
-| server   | `npm run start` | Run API (production)     |
-| server   | `npm run worker`| Run BullMQ photo worker  |
-| client   | `npm run dev`   | Run Vite dev server      |
-| client   | `npm run build` | Build for production     |
-
-## Flow
-
-1. **Organizer** creates an event → Rekognition collection is created for that event.
-2. **Attendees** register with a selfie → face is indexed in the event collection (ExternalImageId = userId).
-3. **Organizer** uploads event photos → stored in S3/MinIO, one job per photo is queued (BullMQ).
-4. **Worker** processes each job: loads photo from S3/MinIO, calls Rekognition `SearchFacesByImage` against the event collection, creates `PhotoDelivery` for each matched attendee.
-5. **Attendees** open “My photos” → paginated list of delivered photos (signed URLs).
-
-## Env (server)
-
-| Variable            | Description                          |
-|---------------------|--------------------------------------|
-| `MONGODB_URI`       | MongoDB connection string            |
-| `REDIS_URL`         | Redis URL (e.g. `redis://localhost:6379`) |
-| `JWT_ACCESS_SECRET` | Min 32 chars                         |
-| `JWT_REFRESH_SECRET`| Min 32 chars                         |
-| `AWS_REGION`        | e.g. `us-east-1`                     |
-| `AWS_ACCESS_KEY_ID` | For Rekognition (and S3 if used)     |
-| `AWS_SECRET_ACCESS_KEY` | For Rekognition (and S3 if used) |
-| `S3_ENDPOINT`       | MinIO: `http://localhost:9000`      |
-| `S3_BUCKET`         | e.g. `momentdrop`                    |
-| `S3_ACCESS_KEY`     | MinIO: `minioadmin`                  |
-| `S3_SECRET_KEY`     | MinIO: `minioadmin`                  |
-
-If AWS credentials are not set, Rekognition is skipped (attendees can still register and photos upload; matching will not run). Use MinIO for fully free storage; use AWS S3 if you prefer.
+## License
+This project is licensed under the MIT License.
