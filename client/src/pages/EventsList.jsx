@@ -58,17 +58,7 @@ export default function EventsList() {
 
   const filteredEvents = events.filter(e => {
     if (!search) return true;
-    const s = search.toLowerCase();
-    
-    // Attempt to extract event ID if a full link was pasted
-    const possibleIdMatch = search.match(/events\/([a-zA-Z0-9_-]+)/i);
-    const searchId = possibleIdMatch ? possibleIdMatch[1].toLowerCase() : s;
-    
-    if (e.name.toLowerCase().includes(s)) return true;
-    if (e._id.toLowerCase() === searchId || (e.id && e.id.toLowerCase() === searchId)) return true;
-    if (e._id.toLowerCase().includes(s)) return true;
-    
-    return false;
+    return e.name.toLowerCase().includes(search.toLowerCase());
   });
 
   return (
@@ -88,22 +78,7 @@ export default function EventsList() {
           </Link>
         </div>
 
-        <div className="mb-8">
-          <div className="relative max-w-xl">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              placeholder="Search by event name or invite link..."
-              className="block w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl leading-5 border-transparent placeholder-slate-400 focus:border-primary-500 focus:bg-white focus:ring-2 focus:ring-primary-500 transition-colors shadow-sm outline-none"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-        </div>
+
 
         {filteredEvents.length === 0 ? (
           <div className="bg-white rounded-3xl border border-slate-100 p-16 text-center shadow-sm mt-8">

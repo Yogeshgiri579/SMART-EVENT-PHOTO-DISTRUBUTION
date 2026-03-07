@@ -156,27 +156,40 @@ export default function EventDetail() {
                       const img = new Image();
                       
                       img.onload = () => {
-                        // Add padding/background to the canvas so it looks nice
+                        // Increase canvas size to fit text
                         canvas.width = img.width + 40;
-                        canvas.height = img.height + 40;
+                        canvas.height = img.height + 90;
                         ctx.fillStyle = "#ffffff";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Draw QR Code
                         ctx.drawImage(img, 20, 20);
+                        
+                        // Draw Title and Link
+                        ctx.fillStyle = "#0f172a";
+                        ctx.font = "bold 16px sans-serif";
+                        ctx.textAlign = "center";
+                        ctx.fillText(event.name, canvas.width / 2, img.height + 45);
+                        
+                        ctx.fillStyle = "#4f46e5";
+                        ctx.font = "12px sans-serif";
+                        ctx.fillText(eventUrl, canvas.width / 2, img.height + 65);
                         
                         canvas.toBlob(async (blob) => {
                           const file = new File([blob], 'event-qr.png', { type: 'image/png' });
+                          const shareText = `Join ${event.name} and upload your selfies!\n\nLink: ${eventUrl}`;
                           try {
                             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                               await navigator.share({
                                 files: [file],
                                 title: event.name,
-                                text: `Join ${event.name} and upload your selfies!`,
-                                url: eventUrl
+                                text: shareText,
+                                // Removing 'url' param ensures WhatsApp shows the image
                               });
                             } else {
                               await navigator.share({
                                 title: event.name,
-                                text: `Join ${event.name} and upload your selfies!`,
+                                text: shareText,
                                 url: eventUrl
                               });
                             }
@@ -218,11 +231,12 @@ export default function EventDetail() {
       )}
 
       {/* Show loading state placeholder to prevent glitching Register button visibility */}
-      {attendeeLoading && !isOrganizer && (
+      {/* We combine attendeeLoading and unregisterMutation.isPending to immediately show the loading block! */}
+      {(attendeeLoading || unregisterMutation.isPending) && !isOrganizer && (
         <div className="relative overflow-hidden bg-slate-100 rounded-3xl p-8 sm:p-10 animate-pulse h-48 border border-slate-200"></div>
       )}
 
-      {!attendeeLoading && !isAttendee && !isOrganizer && (
+      {!(attendeeLoading || unregisterMutation.isPending) && !isAttendee && !isOrganizer && (
         <div className="relative overflow-hidden bg-primary-600 rounded-3xl p-8 sm:p-10 text-white shadow-xl shadow-primary-500/20 transform transition-transform hover:-translate-y-1 duration-300">
           <div className="absolute right-0 top-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-12 translate-x-12 pointer-events-none"></div>
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -250,7 +264,7 @@ export default function EventDetail() {
         </div>
       )}
 
-      {!attendeeLoading && isAttendee && (
+      {!(attendeeLoading || unregisterMutation.isPending) && isAttendee && (
         <div className="relative overflow-hidden bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-3xl p-8 sm:p-10 shadow-sm transform transition-all">
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl -translate-y-12 translate-x-12 pointer-events-none"></div>
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">

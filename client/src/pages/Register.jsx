@@ -28,8 +28,18 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-primary-50 px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-primary-50 px-4 relative">
+      <Link 
+        to="/" 
+        className="absolute top-6 left-6 inline-flex items-center gap-2 text-slate-500 hover:text-primary-600 font-medium transition-colors bg-white/50 backdrop-blur-sm px-4 py-2 rounded-xl shadow-sm border border-slate-200"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        Back to Home
+      </Link>
+
+      <div className="w-full max-w-md mt-12 sm:mt-0">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary-600">MomentDrop</h1>
           <p className="text-slate-500 mt-1">Event photo distribution</p>
