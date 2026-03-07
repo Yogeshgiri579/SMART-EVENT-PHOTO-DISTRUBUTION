@@ -4,10 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext'
 import { getEvent, getMyAttendeeStatus, unregisterAttendee } from '../api/events'
 import { getEventJobStats } from '../api/photos'
+import { useState } from 'react'
 
 export default function EventDetail() {
   const { eventId } = useParams()
   const { user } = useAuth()
+  const [copied, setCopied] = useState(false)
 
   const { data: eventData, isLoading: eventLoading, error: eventError } = useQuery({
     queryKey: ['event', eventId],
@@ -37,7 +39,7 @@ export default function EventDetail() {
   const currentUserId = user?.id ?? user?._id ? String(user.id ?? user._id) : null
   const isOrganizer = !!organizerId && !!currentUserId && organizerId === currentUserId
 
-  const { data: attendeeStatus } = useQuery({
+  const { data: attendeeStatus, isLoading: attendeeLoading } = useQuery({
     queryKey: ['attendee', eventId],
     queryFn: () => getMyAttendeeStatus(eventId),
     enabled: !!eventId && !!user,
@@ -132,12 +134,35 @@ export default function EventDetail() {
                 className="bg-transparent border-none text-slate-700 outline-none flex-1 truncate text-sm px-2 font-mono"
               />
               <button
-                onClick={() => navigator.clipboard.writeText(eventUrl)}
-                className="ml-3 px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-semibold transition-colors"
+                onClick={() => {
+                  navigator.clipboard.writeText(eventUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="ml-3 px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-semibold transition-colors w-20 text-center"
               >
-                Copy
+                {copied ? 'Copied!' : 'Copy'}
               </button>
             </div>
+            {navigator.share && (
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.share({
+                      title: event.name,
+                      text: `Upload your selfies for ${event.name}!`,
+                      url: eventUrl
+                    });
+                  } catch (e) {
+                    console.log('Share error:', e);
+                  }
+                }}
+                className="mt-4 px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                Share Event Link
+              </button>
+            )}
           </div>
           <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-md flex-shrink-0">
             <QRCode
@@ -151,7 +176,12 @@ export default function EventDetail() {
         </div>
       )}
 
-      {!isAttendee && !isOrganizer && (
+      {/* Show loading state placeholder to prevent glitching Register button visibility */}
+      {attendeeLoading && !isOrganizer && (
+        <div className="relative overflow-hidden bg-slate-100 rounded-3xl p-8 sm:p-10 animate-pulse h-48 border border-slate-200"></div>
+      )}
+
+      {!attendeeLoading && !isAttendee && !isOrganizer && (
         <div className="relative overflow-hidden bg-primary-600 rounded-3xl p-8 sm:p-10 text-white shadow-xl shadow-primary-500/20 transform transition-transform hover:-translate-y-1 duration-300">
           <div className="absolute right-0 top-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-12 translate-x-12 pointer-events-none"></div>
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -179,7 +209,7 @@ export default function EventDetail() {
         </div>
       )}
 
-      {isAttendee && (
+      {!attendeeLoading && isAttendee && (
         <div className="relative overflow-hidden bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-3xl p-8 sm:p-10 shadow-sm transform transition-all">
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl -translate-y-12 translate-x-12 pointer-events-none"></div>
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">

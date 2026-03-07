@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { listEvents } from '../api/events'
 
 export default function EventsList() {
+  const [search, setSearch] = useState('')
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['events'],
     queryFn: () => listEvents(),
@@ -64,27 +67,46 @@ export default function EventsList() {
           </Link>
         </div>
 
-        {events.length === 0 ? (
+        <div className="mb-8">
+          <div className="relative max-w-xl">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Search by event name or invite link..."
+              className="block w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl leading-5 border-transparent placeholder-slate-400 focus:border-primary-500 focus:bg-white focus:ring-2 focus:ring-primary-500 transition-colors shadow-sm outline-none"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {filteredEvents.length === 0 ? (
           <div className="bg-white rounded-3xl border border-slate-100 p-16 text-center shadow-sm mt-8">
             <div className="w-24 h-24 bg-primary-50 text-primary-500 rounded-full flex items-center justify-center mx-auto mb-6">
               <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-3">Your Timeline is Empty</h2>
+            <h2 className="text-2xl font-bold text-slate-800 mb-3">{search ? 'No Match Found' : 'Your Timeline is Empty'}</h2>
             <p className="text-slate-500 max-w-md mx-auto mb-8 text-lg">
-              Get started by creating your first event. You'll be able to invite attendees and instantly deliver photos.
+              {search ? 'Try adjusting your search query.' : 'Get started by creating your first event. You\'ll be able to invite attendees and instantly deliver photos.'}
             </p>
-            <Link
-              to="/events/new"
-              className="inline-flex px-8 py-3 rounded-xl bg-slate-900 text-white font-semibold text-lg hover:bg-slate-800 shadow-md hover:shadow-xl transition-all"
-            >
-              Create My First Event
-            </Link>
+            {!search && (
+              <Link
+                to="/events/new"
+                className="inline-flex px-8 py-3 rounded-xl bg-slate-900 text-white font-semibold text-lg hover:bg-slate-800 shadow-md hover:shadow-xl transition-all"
+              >
+                Create My First Event
+              </Link>
+            )}
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {events.map((event, i) => (
+            {filteredEvents.map((event, i) => (
               <div 
                 key={event._id} 
                 className="group opacity-0 animate-[fade-in-up_0.5s_ease-out_forwards]"

@@ -148,32 +148,33 @@ router.post('/:eventId/attendees', upload.single('selfie'), async (req, res, nex
     const key = `events/${event._id}/attendees/${req.userId}/${uuidv4()}.jpg`
     await uploadBuffer(key, file.buffer, file.mimetype || 'image/jpeg')
 
-    let faceId = null;
-    let embedding = undefined;
-
-    try {
-      const url = await getSignedGetUrl(key);
-      const faces = await detectFacesFromUrl(url);
-      if (faces && faces.length > 0) {
-        embedding = faces[0].embedding;
-        faceId = uuidv4();
-      } else {
-        return res.status(400).json({ message: 'No face detected in the selfie' });
-      }
-    } catch (e) {
-      console.warn('Face detection failed:', e.message);
-      return res.status(500).json({ message: 'Failed to process face from image' });
-    }
-
-    await EventAttendee.create({
+    const attendee = await EventAttendee.create({
       eventId: event._id,
       userId: req.userId,
-      faceId,
-      embedding,
+      faceId: null,
+      embedding: undefined,
       selfieKey: key,
       processingConsent: true
-    })
-    res.status(201).json({ message: 'Registered successfully' })
+    });
+
+    // Process face in background
+    ;(async () => {
+      try {
+        const url = await getSignedGetUrl(key);
+        const faces = await detectFacesFromUrl(url);
+        if (faces && faces.length > 0) {
+          attendee.embedding = faces[0].embedding;
+          attendee.faceId = uuidv4();
+          await attendee.save();
+        } else {
+          console.warn(`No face detected in the selfie for user ${req.userId}`);
+        }
+      } catch (e) {
+        console.warn('Face detection failed in background:', e.message);
+      }
+    })();
+
+    res.status(201).json({ message: 'Registered successfully, face processing in background' })
   } catch (e) {
     next(e)
   }
@@ -200,29 +201,29 @@ router.put('/:eventId/attendees/me', upload.single('selfie'), async (req, res, n
     const key = `events/${event._id}/attendees/${req.userId}/${uuidv4()}.jpg`
     await uploadBuffer(key, file.buffer, file.mimetype || 'image/jpeg')
 
-    let faceId = attendee.faceId;
-    let embedding = undefined;
-
-    try {
-      const url = await getSignedGetUrl(key);
-      const faces = await detectFacesFromUrl(url);
-      if (faces && faces.length > 0) {
-        embedding = faces[0].embedding;
-        if (!faceId) faceId = uuidv4();
-      } else {
-        return res.status(400).json({ message: 'No face detected in the selfie' });
-      }
-    } catch (e) {
-      console.warn('Face detection failed:', e.message);
-      return res.status(500).json({ message: 'Failed to process face from image' });
-    }
-
-    attendee.faceId = faceId
-    attendee.embedding = embedding
     attendee.selfieKey = key
+    // Reset existing embedding while new one processes
+    attendee.embedding = undefined
     await attendee.save()
 
-    res.json({ message: 'Selfie updated successfully' })
+    // Process face in background
+    ;(async () => {
+      try {
+        const url = await getSignedGetUrl(key);
+        const faces = await detectFacesFromUrl(url);
+        if (faces && faces.length > 0) {
+          attendee.embedding = faces[0].embedding;
+          if (!attendee.faceId) attendee.faceId = uuidv4();
+          await attendee.save();
+        } else {
+          console.warn(`No face detected in the updated selfie for user ${req.userId}`);
+        }
+      } catch (e) {
+        console.warn('Face detection failed in background:', e.message);
+      }
+    })();
+
+    res.json({ message: 'Selfie updated successfully, face processing in background' })
   } catch (e) {
     next(e)
   }

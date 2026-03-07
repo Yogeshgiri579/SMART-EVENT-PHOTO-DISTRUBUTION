@@ -33,7 +33,7 @@ function AppRoutes() {
         <Route path="events" element={<ProtectedRoute><EventsList /></ProtectedRoute>} />
         <Route path="events/new" element={<ProtectedRoute><EventNew /></ProtectedRoute>} />
         <Route path="events/:eventId" element={<EventDetail />} />
-        <Route path="events/:eventId/register" element={<ProtectedRoute><EventRegister /></ProtectedRoute>} />
+        <Route path="events/:eventId/register" element={<EventRegister />} />
         <Route path="events/:eventId/upload" element={<ProtectedRoute><EventUpload /></ProtectedRoute>} />
         <Route path="events/:eventId/photos" element={<ProtectedRoute><EventPhotos /></ProtectedRoute>} />
         <Route path="my-photos" element={<ProtectedRoute><MyPhotos /></ProtectedRoute>} />
