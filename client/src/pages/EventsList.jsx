@@ -1,20 +1,17 @@
-import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
 import { listEvents } from '../api/events'
 
 export default function EventsList() {
   const [searchParams] = useSearchParams()
-  const [search, setSearch] = useState(searchParams.get('search') || '')
-
-  useEffect(() => {
-    const q = searchParams.get('search')
-    if (q !== null) setSearch(q)
-  }, [searchParams])
+  // Derive search directly from URL — no separate state needed.
+  // When Navbar updates the param (debounced), this re-renders instantly.
+  const search = searchParams.get('search') || ''
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['events'],
     queryFn: () => listEvents(),
+    staleTime: 30_000,
   })
 
   if (isLoading) {
